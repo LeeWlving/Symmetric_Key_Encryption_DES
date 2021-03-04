@@ -137,7 +137,7 @@ def nsplit(s, n):                        # 将列表拆分为大小为'n'的子�
     return [s[k:k + n] for k in range(0, len(s), n)]
 
 
-def getRandomString(slen=8):             # 获得key的随机序列
+def getRandomString(slen=8):             # 获得key的随机序列   
     return ''.join(random.sample(string.ascii_letters + string.digits, slen))
 
 ENCRYPT = 1
@@ -162,11 +162,15 @@ class Des():
             self.addPadding()
         elif len(self.text) % 8 != 0:    # 数据的大小一定是 8bytes 大小的倍数
             raise Exception("Data size should be multiple of 8")
-
+        
         self.generatekeys()              # 统计计算所有的key值，存入keys列表
         text_blocks = nsplit(self.text, 8)      # 数据的分片每8个字节一组
         result = list()
-        for block in text_blocks:               # 遍历所有数据块
+        if action == ENCRYPT:      #log
+            print("Decrypting text to plaintext:",text_blocks)
+        else:
+            print("Encrypting plaintext to ciphertext:",text_blocks)
+        for j, block in enumerate(text_blocks):               # 遍历所有数据块
             block = string_to_bit_array(block)
             block = self.permut(block, IP)      # 数据块的初始置换
             g, d = nsplit(block, 32)            # 数据块分片 g(LEFT), d(RIGHT)
@@ -175,15 +179,24 @@ class Des():
                 d_e = self.expand(d, E)         # d(RIGHT)的扩展 32bit-->48bit
                 if action == ENCRYPT:
                     tmp = self.xor(self.keys[i], d_e)
+                    #print("When decrypting,do xor processing as:",bit_array_to_string(tmp))
                 else:
                     tmp = self.xor(self.keys[15 - i], d_e)  # 如果是解密的话先使用最后的key
+                    #print("When decrypting,do xor processing as:",bit_array_to_string(tmp))
+
                 tmp = self.substitute(tmp)                  # S盒代换 48bit-->32bit
+                #print("S permuting as:",bit_array_to_string(tmp))
+
                 tmp = self.permut(tmp, P)                   # P盒置换
+                #print("P permuting as:",bit_array_to_string(tmp))
                 tmp = self.xor(g, tmp)
+                #print("xor processing with LEFT:",bit_array_to_string(tmp))
                 g = d
                 d = tmp
             result += self.permut(d + g, IP_1)              # 数据块的初始逆置换
+            print("The {}th round result:".format(j+1),bit_array_to_string(result))
         final_res = bit_array_to_string(result)
+        
         if padding and action == DECRYPT:
             return self.removePadding(final_res)            # 如果解密和填充为真，则删除填充
         else:
@@ -239,6 +252,8 @@ class Des():
 
 if __name__ == '__main__':
     key = getRandomString()
+    with open('key.txt','r') as kf:
+        key=(kf.read())
     with open('text.txt','r+') as fr:
         text = (fr.read())                 # 从 'text.txt' 文件中读取加密文本
     D = Des()
@@ -247,20 +262,12 @@ if __name__ == '__main__':
     P = D.decrypt(key, C1, True)             # 解密
     with open('key.txt','w+') as fwk:        # 存储密钥
         fwk.write(key)
+        print("The key is ",key)
     with open('ciphertext.txt','w+') as fwc: # 存储密文
         fwc.write(C)
+        print("The ciphertext is ",C)
     with open('plaintext.txt','w+') as fwp:  # 存储明文
         fwp.writelines(P)
+        print("The plaintext is ",P)
     print('********************* Des Encryption and Decryption *********************')
-    print('*                                                                       *')
-    print('*                                                                       *')
-    print('*                                                                       *')
-    print('*                Key: 存储于 < key.txt > 文件中.                          *')
-    print('*                                                                       *')
-    print('*                Ciphertext: 存储于 < ciphertext.txt > 文件中.            *')
-    print('*                                                                       *')
-    print('*                Plaintext: 存储于 < plaintext.txt > 文件中.              *')
-    print('*                                                                       *')
-    print('*                                                                       *')
-    print('*                                                                       *')
-    print('*************************************************************************')
+    
