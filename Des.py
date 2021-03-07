@@ -173,7 +173,7 @@ class Des():
         for j, block in enumerate(text_blocks):               # 遍历所有数据块
             print(block)
             block = string_to_bit_array(block)
-            print(block)
+            #print(block)
             block = self.permut(block, IP)      # 数据块的初始置换
             g, d = nsplit(block, 32)            # 数据块分片 g(LEFT), d(RIGHT)
             tmp = None
